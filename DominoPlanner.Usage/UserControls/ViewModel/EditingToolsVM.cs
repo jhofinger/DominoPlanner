@@ -817,23 +817,30 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
             var start = parent.FindDominoAtPosition(dominoPoint, int.MaxValue); // in this case we don't care if we didn't directly hit a domino since we want to fill the region anyway
             if (start == null) return neighbors; // no domino was clicked
 
-            RecursiveSearch(start.idx, neighbors);
+            neighbors = GetDominoesToSelect(start.idx);
             return neighbors;
         }
-
-        private void RecursiveSearch(int dc, List<int> list)
+        private List<int> GetDominoesToSelect(int start_position)
         {
-            var neighbors = nl.FindNeighbors(dc);
-            foreach (var n in neighbors)
+            List<int> result = new List<int>();
+            Stack<int> toCheck = new Stack<int>();
+            toCheck.Push(start_position);
+            while (toCheck.Count != 0)
             {
-                if (list.Contains(n)) continue;
-                if (parent.dominoTransfer[n].Color == parent.dominoTransfer[dc].Color)
+                var dc = toCheck.Pop();
+                var neighbors = nl.FindNeighbors(dc);
+                foreach (var n in neighbors)
                 {
-                    list.Add(n);
-                    RecursiveSearch(n, list);
-                }
+                    if (result.Contains(n)) continue;
+                    if (parent.dominoTransfer[n].Color == parent.dominoTransfer[dc].Color)
+                    {
+                        result.Add(n);
+                        toCheck.Push(n);
+                    }
 
+                }
             }
+            return result;
         }
         public override bool IsInside(EditingDominoVM dic, Rect boundingBox, bool includeBoundary)
         {
