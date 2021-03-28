@@ -21,7 +21,6 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
             UICursor = null;
             Dominoes = new AvaloniaList<EditingDominoVM>();
             PossiblePastePositions = new List<int>();
-            selectedDominoes = new AvaloniaList<int>();
             UnsavedChanges = false;
             CurrentProject = dominoProvider;
 
@@ -78,11 +77,17 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
 
         internal DominoTransfer dominoTransfer => CurrentProject.Last;
 
-        internal AvaloniaList<int> selectedDominoes;
-        public AvaloniaList<int> SelectedDominoes
+        public List<int> GetSelectedDominoes()
         {
-            get { return selectedDominoes; }
-            set { selectedDominoes = value; RaisePropertyChanged(); }
+            List<int> selected = new List<int>();
+            foreach (var domino in Dominoes)
+            {
+                if (domino.State == EditingDominoStates.Selected)
+                {
+                    selected.Add(domino.idx);
+                }
+            }
+            return selected;
         }
         private int[] selectedColors;
         private int startindex;
@@ -365,14 +370,15 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
         {
             if (!(CurrentProject is ICopyPasteable)) await Errorhandler.RaiseMessage(_("Copy/Paste is not supported in this project."), "Copy", Errorhandler.MessageType.Warning);
             ClearPastePositions();
-            if (selectedDominoes.Count <= 0)
+            var selected = GetSelectedDominoes();
+            if (selected.Count <= 0)
             {
                 await Errorhandler.RaiseMessage(_("Nothing to copy!"), _("No selection"), Errorhandler.MessageType.Error);
                 return;
             }
             iscopying = true;
-            toCopy = new List<int>(selectedDominoes);
-            startindex = selectedDominoes.Min();
+            toCopy = new List<int>(selected);
+            startindex = selected.Min();
             ClearFullSelection(true);
             try
             {
@@ -557,7 +563,7 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
             {
                 color = SelectedColor.DominoColor;
             }
-            SetColorOperation sco = new SetColorOperation(CurrentProject, selectedDominoes.ToArray(), CurrentProject.colors.RepresentionForCalculation.ToList().IndexOf(color));
+            SetColorOperation sco = new SetColorOperation(CurrentProject, GetSelectedDominoes().ToArray(), CurrentProject.colors.RepresentionForCalculation.ToList().IndexOf(color));
             ClearFullSelection(true);
             ExecuteOperation(sco);
             UnsavedChanges = true;
@@ -566,11 +572,12 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
 
         public async void AddRow(bool addBelow, int index = -1, IDominoShape colorReference = null)
         {
+            var selected = GetSelectedDominoes();
             try
             {
-                if (selectedDominoes.Count > 0 || index != -1)
+                if (selected.Count > 0 || index != -1)
                 {
-                    int selDomino = selectedDominoes.Count > 0 ? selectedDominoes.First() : index;
+                    int selDomino = selected.Count > 0 ? selected.First() : index;
                     int color = (colorReference ?? dominoTransfer[selDomino]).Color;
                     if (CurrentProject is IRowColumnAddableDeletable)
                     {
@@ -597,11 +604,12 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
 
         public async void AddColumn(bool addRight, int index = -1, IDominoShape colorReference  =null)
         {
+            var selected = GetSelectedDominoes();
             try
             {
-                if (selectedDominoes.Count > 0 || index != -1)
+                if (selected.Count > 0 || index != -1)
                 {
-                    int selDomino = selectedDominoes.Count > 0 ? selectedDominoes.First() : index;
+                    int selDomino = selected.Count > 0 ? selected.First() : index;
                     int color = (colorReference ?? dominoTransfer[selDomino]).Color;
                     if (CurrentProject is IRowColumnAddableDeletable)
                     {
@@ -628,6 +636,7 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
 
         public async void RemoveSelRows(int index = -1)
         {
+            var selected = GetSelectedDominoes();
             try
             {
                 if (CurrentProject is IRowColumnAddableDeletable)
@@ -637,9 +646,9 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
                     {
                         deletionIndices = new int[] { index };
                     }
-                    if (selectedDominoes.Count > 0)
+                    if (selected.Count > 0)
                     {
-                        deletionIndices = selectedDominoes.ToArray();
+                        deletionIndices = selected.ToArray();
                     }
                     if (deletionIndices != null)
                     {
@@ -663,6 +672,7 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
 
         public async void RemoveSelColumns(int index = -1)
         {
+            var selected = GetSelectedDominoes();
             try
             {
                 if (CurrentProject is IRowColumnAddableDeletable)
@@ -672,9 +682,9 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
                     {
                         deletionIndices = new int[] { index };
                     }
-                    if (selectedDominoes.Count > 0)
+                    if (selected.Count > 0)
                     {
-                        deletionIndices = selectedDominoes.ToArray();
+                        deletionIndices = selected.ToArray();
                     }
                     if (deletionIndices != null)
                     {
@@ -697,14 +707,15 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
         }
         internal void ClearFullSelection(bool undoable = false)
         {
+            var selected = GetSelectedDominoes();
             if (undoable)
             {
-                SelectionTool.Select(selectedDominoes, false);
+                SelectionTool.Select(selected, false);
 
             }
             else
             {
-                foreach (int i in selectedDominoes.ToArray())
+                foreach (int i in selected.ToArray())
                 {
                     RemoveFromSelectedDominoes(i);
                 }
@@ -734,20 +745,24 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
         {
             if (SelectedColor == null) return;
             var selectedIndex = CurrentProject.colors.RepresentionForCalculation.ToList().IndexOf(SelectedColor.DominoColor);
-            IEnumerable<int> oldSelection = selectedDominoes.ToArray();
-            if (oldSelection.Count() == 0)
+            bool isAnySelected = false;
+            List<int> AllWithColor = new List<int>();
+            List<int> Deselect = new List<int>();
+            foreach (var d in Dominoes)
             {
-                oldSelection = Enumerable.Range(0, dominoTransfer.Length);
+                if (d.State == EditingDominoStates.Selected)
+                {
+                    isAnySelected = true;
+                    if (d.domino.Color != selectedIndex)
+                        Deselect.Add(d.idx);
+                } 
+                if (d.domino.Color == selectedIndex)
+                        AllWithColor.Add(d.idx);
             }
-            IEnumerable<int> newSelection = oldSelection.Where(x => dominoTransfer[x].Color == selectedIndex);
-            if (selectedDominoes.Count == 0)
-            {
-                SelectionTool.Select(newSelection.ToList(), true);
-            }
+            if (isAnySelected)
+                SelectionTool.Select(Deselect, false);
             else
-            {
-                SelectionTool.Select(oldSelection.Except(newSelection).ToList(), false);
-            }
+                SelectionTool.Select(AllWithColor, true);
             UpdateUIElements();
         }
 
@@ -794,13 +809,11 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
         {
             if (SelectDominoVisual(i))
             { 
-                selectedDominoes.Add(i);
                 selectedColors[dominoTransfer[i].Color]++;
             }
         }
         public void RemoveFromSelectedDominoes(int i)
         {
-            selectedDominoes.Remove(i);
             if (DeSelectDominoVisual(i))
             {
                 selectedColors[dominoTransfer[i].Color]--;

@@ -246,7 +246,6 @@
                                           ShiftX="{Binding DisplaySettingsTool.HorizontalOffset}"
                                           ShiftY="{Binding DisplaySettingsTool.VerticalOffset}"
                                           Zoom="{Binding DisplaySettingsTool.ZoomValue, Mode=TwoWay}"
-                                          SelectedDominoes="{Binding SelectedDominoes}"
                                           SelectedBorderColor="{Binding DisplaySettingsTool.SelectedColor}"
                                           UnselectedBorderColor="{Binding DisplaySettingsTool.BorderColor}"
                                           SelectionDomain="{Binding SelectionTool.CurrentSelectionDomain.SelectionShape}"

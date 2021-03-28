@@ -240,7 +240,7 @@ namespace DominoPlanner.Usage.UserControls.ViewModel
         }
         public void InvertSelectionOperation()
         {
-            var current = parent.selectedDominoes.ToList();
+            var current = parent.GetSelectedDominoes();
             var n = Enumerable.Range(0, parent.dominoTransfer.Length).Except(current).ToList();
             Select(current, false);
             Select(n, true);

@@ -108,13 +108,6 @@ namespace DominoPlanner.Usage
         }
         public static readonly StyledProperty<bool> SelectionDomainVisibleProperty = AvaloniaProperty.Register<ProjectCanvas, bool>(nameof(SelectionDomainVisible));
 
-        public AvaloniaList<int> SelectedDominoes
-        {
-            get { return (AvaloniaList<int>)GetValue(SelectedDominoesProperty); }
-            set { SetValue(SelectedDominoesProperty, value); }
-        }
-        public static readonly StyledProperty<AvaloniaList<int>> SelectedDominoesProperty = AvaloniaProperty.Register<ProjectCanvas, AvaloniaList<int>>(nameof(SelectedDominoes));
-
         public SKBitmap SourceImage
         {
             get { return GetValue(SourceImageProperty); }
